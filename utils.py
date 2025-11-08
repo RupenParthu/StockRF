@@ -1,4 +1,5 @@
 import pandas as pd
+import yfinance as yf
 
 FEATURES = [
     "Close", "Volume",
@@ -37,3 +38,20 @@ def engineer_features(stock_data: pd.DataFrame) -> pd.DataFrame:
     #ema12 = ema26   Zero   Neutral
     stock_data['MACD_Signal'] = stock_data['MACD'].ewm(span=9, adjust=False).mean()    
     return stock_data
+
+def add_financial_features(df: pd.DataFrame, ticker: str) -> pd.DataFrame:
+    ticker_info = yf.Ticker(ticker).info
+
+    fin_features = {
+        "marketCap": ticker_info.get("marketCap", 0),
+        "trailingPE": ticker_info.get("trailingPE", 0),
+        "priceToBook": ticker_info.get("priceToBook", 0),
+        "profitMargins": ticker_info.get("profitMargins", 0),
+        "debtToEquity": ticker_info.get("debtToEquity", 0),
+        "returnOnEquity": ticker_info.get("returnOnEquity", 0)
+    }
+
+    for key, value in fin_features.items():
+        df[key] = value if pd.notna(value) else 0
+
+    return df
