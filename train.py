@@ -27,13 +27,9 @@ def train_new_model(ticker):
         console.print(f"[bold red]🚫 Error: No training data found for {ticker}.[/bold red]")
         return None
 
-    # 1️⃣ Add technical indicators
     data = engineer_features(data)
-    
-    # 2️⃣ Add company financial metrics
     data = add_financial_features(data, ticker)
     
-    # 3️⃣ Create target
     data["Target"] = (data["Close"].shift(-1) > data["Close"]).astype(int)
     data.dropna(inplace=True)
 
@@ -41,29 +37,15 @@ def train_new_model(ticker):
         console.print(f"🚫 Error: Not enough data for {ticker} after feature calculation.", style="bold red")
         return None
            
-    # 4️⃣ Split features and target
     X = data[FEATURES]
     y = data["Target"]
 
-    # 5️⃣ Balance dataset (to avoid bias)
-    # 
-    # <-- DELETE ALL THE 'resample' CODE FROM STEP 5. -->
-    # <-- The 'class_weight' in Step 8 handles this correctly! -->
-    #
-
-    # 6️⃣ Split train/test (This now uses the original X and y)
     split_index = int(len(X) * SPLIT_RATIO)
     X_train, X_test = X[:split_index], X[split_index:]
     y_train, y_test = y[:split_index], y[split_index:]
 
-    # 7️⃣ Scale features
-    #
-    # <-- DELETE ALL THE 'StandardScaler' CODE FROM STEP 7. -->
-    #
-    
     console.print(f"[#FF5733]Training Random Forest on [bold]{len(X_train)}[/bold] samples...[/#FF5733]")
     
-    # 8️⃣ Train Random Forest
     model = RandomForestClassifier(
         n_estimators=200,
         max_depth=8,
@@ -71,17 +53,13 @@ def train_new_model(ticker):
         class_weight="balanced", # <-- THIS IS THE *CORRECT* FIX FOR IMBALANCE
         n_jobs=-1
     )
-    # FIX: Train on the original, unscaled data
     model.fit(X_train, y_train)
 
-    # 9️⃣ Evaluate
-    # FIX: Predict on the original, unscaled data
     predictions = model.predict(X_test)
     accuracy = accuracy_score(y_test, predictions)
     report = classification_report(y_test, predictions, zero_division=0)
     console.print(Panel(f"[bold green]Accuracy: {accuracy * 100:.2f}%[/bold green]\n\n{report}", title="📊 MODEL EVALUATION", border_style="green"))
 
-    # 🔟 Save Model (This is now correct)
     os.makedirs(MODEL_DIR, exist_ok=True)
     MODEL_PATH = os.path.join(MODEL_DIR, f"model_{ticker}.joblib")
     joblib.dump(model, MODEL_PATH) # <-- Saves ONLY the model
